@@ -4,7 +4,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# 형님의 실제 API 키를 사용해야 합니다.
+# 형님의 실제 API 키
 GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
@@ -30,9 +30,9 @@ def jangpro_mission_start():
         )
         print("[3/5] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (v1beta 및 :generateMessage 로 최종 수정)
+        # 3. Gemini API 호출 (v1beta 및 :generateContent 로 최종 수정)
         print("[4/5] Calling Gemini API...")
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateMessage?key={GEMINI_API_KEY}"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         
         gemini_response = None
