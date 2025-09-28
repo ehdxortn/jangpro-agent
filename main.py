@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-import requests, json, os
+import requests, json, os, time
 from datetime import datetime
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ def jangpro_mission_start():
         # 1. Upbit 데이터 호출
         print("[1/5] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
-        upbit_response = requests.get(upbit_url, timeout=10) # Timeout 10초 추가
+        upbit_response = requests.get(upbit_url, timeout=10)
         upbit_response.raise_for_status() 
         upbit_data = upbit_response.json()
         print("[2/5] Upbit API call successful.")
@@ -30,14 +30,27 @@ def jangpro_mission_start():
         )
         print("[3/5] Prompt generation successful.")
 
-        # 3. Gemini API 호출
+        # 3. Gemini API 호출 (v1 정식 주소로 수정 및 재시도 로직 추가)
         print("[4/5] Calling Gemini API...")
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        gemini_response = requests.post(gemini_url, json=payload, timeout=20) # Timeout 20초 추가
-        gemini_response.raise_for_status() 
+        
+        gemini_response = None
+        for i in range(3):
+            try:
+                gemini_response = requests.post(gemini_url, json=payload, timeout=20)
+                gemini_response.raise_for_status()
+                print(f"[Attempt {i+1}/3] Gemini API call successful.")
+                break 
+            except requests.exceptions.RequestException as e:
+                print(f"[Attempt {i+1}/3] Gemini API call failed: {e}")
+                if i < 2: 
+                    time.sleep(5) 
+                else:
+                    raise 
+                    
         gemini_result_json = gemini_response.json()
-        print("[5/5] Gemini API call successful.")
+        print("[5/5] Gemini API response received.")
 
         # 4. 안정적인 응답 파싱
         if 'candidates' in gemini_result_json and gemini_result_json['candidates']:
