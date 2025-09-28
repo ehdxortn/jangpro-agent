@@ -4,7 +4,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# 형님의 실제 API 키 (정상)
+# 형님의 실제 API 키를 사용해야 합니다.
 GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
@@ -30,11 +30,11 @@ def jangpro_mission_start():
         )
         print("[3/5] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (v1beta 정식 최신 URL)
+        # 3. Gemini API 호출 (v1beta 및 :generateMessage 로 최종 수정)
         print("[4/5] Calling Gemini API...")
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateMessage?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
+        
         gemini_response = None
         for i in range(3):
             try:
@@ -48,7 +48,7 @@ def jangpro_mission_start():
                     time.sleep(5) 
                 else:
                     raise 
-
+                    
         gemini_result_json = gemini_response.json()
         print("[5/5] Gemini API response received.")
 
@@ -57,7 +57,7 @@ def jangpro_mission_start():
             analysis_text = gemini_result_json['candidates'][0].get('content', {}).get('parts', [{}])[0].get('text', 'No text found in response')
         else:
             analysis_text = f"Analysis not available. Reason: {gemini_result_json.get('promptFeedback', 'Unknown error from API')}"
-
+        
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
