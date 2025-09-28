@@ -10,13 +10,16 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    gemini_result_json = {} # 에러 발생 시 로그 출력을 위해 변수를 미리 선언
+    print("## JANGPRO AGENT: MISSION START ##")
+    gemini_result_json = {} 
     try:
         # 1. Upbit 데이터 호출
+        print("[1/5] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
-        upbit_response = requests.get(upbit_url)
-        upbit_response.raise_for_status() # HTTP 에러 발생 시 여기서 중단
+        upbit_response = requests.get(upbit_url, timeout=10) # Timeout 10초 추가
+        upbit_response.raise_for_status() 
         upbit_data = upbit_response.json()
+        print("[2/5] Upbit API call successful.")
 
         # 2. 프롬프트 생성
         prompt = (
@@ -25,13 +28,16 @@ def jangpro_mission_start():
             f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
+        print("[3/5] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (URL 오타 최종 수정)
+        # 3. Gemini API 호출
+        print("[4/5] Calling Gemini API...")
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        gemini_response = requests.post(gemini_url, json=payload)
-        gemini_response.raise_for_status() # HTTP 에러 발생 시 여기서 중단
+        gemini_response = requests.post(gemini_url, json=payload, timeout=20) # Timeout 20초 추가
+        gemini_response.raise_for_status() 
         gemini_result_json = gemini_response.json()
+        print("[5/5] Gemini API call successful.")
 
         # 4. 안정적인 응답 파싱
         if 'candidates' in gemini_result_json and gemini_result_json['candidates']:
@@ -40,16 +46,12 @@ def jangpro_mission_start():
             analysis_text = f"Analysis not available. Reason: {gemini_result_json.get('promptFeedback', 'Unknown error from API')}"
         
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
+        print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
 
-    except requests.exceptions.RequestException as e:
-        error_report = {"mission_status": "ERROR", "error_type": "RequestException", "error_message": str(e)}
-        return jsonify(error_report), 500
-    except (KeyError, IndexError, TypeError) as e:
-        error_report = {"mission_status": "ERROR", "error_type": "ParsingError", "error_message": f"Failed to parse API response: {str(e)}", "raw_response": gemini_result_json}
-        return jsonify(error_report), 500
     except Exception as e:
-        error_report = {"mission_status": "ERROR", "error_type": "GeneralException", "error_message": str(e)}
+        print(f"!! EXCEPTION OCCURRED: {str(e)} !!")
+        error_report = {"mission_status": "ERROR", "error_message": str(e)}
         return jsonify(error_report), 500
 
 if __name__ == "__main__":
