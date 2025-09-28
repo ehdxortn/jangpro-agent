@@ -4,8 +4,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# 중요: "AIza..." 로 시작하는 API 키는 예시이며, 실제 형님의 키로 사용해야 합니다.
-GEMINI_API_KEY = "AIzaSyAUhg2nFtQxWfmYCfV5kEhbP1vHYiMBiTw" 
+# 형님의 새로운 실제 API 키로 교체되었습니다.
+GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
 @app.route("/")
@@ -22,13 +22,13 @@ def jangpro_mission_start():
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
 
-        gemini_url = f"https.://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         gemini_response = requests.post(gemini_url, json=payload)
         gemini_result_json = gemini_response.json()
 
         analysis_text = gemini_result_json['candidates'][0]['content']['parts'][0]['text']
-
+        
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         return jsonify(final_report)
 
