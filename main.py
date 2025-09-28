@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # 중요: "AIza..." 로 시작하는 API 키는 예시이며, 실제 형님의 키로 사용해야 합니다.
-GEMINI_API_KEY = "AIzaSyAUhg2nFtQxWfmYCfV5kEhbP1vHYiMBiT" 
+GEMINI_API_KEY = "AIzaSyAUhg2nFtQxWfmYCfV5kEhbP1vHYiMBiTw" 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
 @app.route("/")
