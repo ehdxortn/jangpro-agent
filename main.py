@@ -7,6 +7,8 @@ app = Flask(__name__)
 # 형님의 실제 API 키
 GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
+GCP_PROJECT_ID = "jangprofamily" # 우리 프로젝트 ID
+GCP_REGION = "asia-northeast3" # 우리 서비스 지역
 
 @app.route("/")
 def jangpro_mission_start():
@@ -30,33 +32,29 @@ def jangpro_mission_start():
         )
         print("[3/5] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (v1beta 및 :generateContent 로 최종 수정)
-        print("[4/5] Calling Gemini API...")
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        # 3. Gemini API 호출 (Google Cloud 정식 주소 및 양식으로 최종 수정)
+        print("[4/5] Calling Vertex AI (Gemini) API...")
+        # --- 여기가 완전히 바뀐 부분입니다 ---
+        gemini_url = f"https://{GCP_REGION}-aiplatform.googleapis.com/v1/projects/{GCP_PROJECT_ID}/locations/{GCP_REGION}/publishers/google/models/gemini-pro:streamGenerateContent"
+        headers = {
+            "Authorization": f"Bearer {GEMINI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        # ------------------------------------
+
+        gemini_response = requests.post(gemini_url, headers=headers, json=payload, timeout=30)
+        gemini_response.raise_for_status()
         
-        gemini_response = None
-        for i in range(3):
-            try:
-                gemini_response = requests.post(gemini_url, json=payload, timeout=20)
-                gemini_response.raise_for_status()
-                print(f"[Attempt {i+1}/3] Gemini API call successful.")
-                break 
-            except requests.exceptions.RequestException as e:
-                print(f"[Attempt {i+1}/3] Gemini API call failed: {e}")
-                if i < 2: 
-                    time.sleep(5) 
-                else:
-                    raise 
-                    
-        gemini_result_json = gemini_response.json()
+        # streamGenerateContent는 여러 조각으로 응답이 오므로, 마지막 조각을 사용합니다.
+        response_data = gemini_response.text.strip().split('\n')[-1]
+        gemini_result_json = json.loads(response_data)
         print("[5/5] Gemini API response received.")
 
         # 4. 안정적인 응답 파싱
-        if 'candidates' in gemini_result_json and gemini_result_json['candidates']:
-            analysis_text = gemini_result_json['candidates'][0].get('content', {}).get('parts', [{}])[0].get('text', 'No text found in response')
-        else:
-            analysis_text = f"Analysis not available. Reason: {gemini_result_json.get('promptFeedback', 'Unknown error from API')}"
+        analysis_text = gemini_result_json['candidates'][0]['content']['parts'][0]['text']
         
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
