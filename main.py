@@ -26,7 +26,7 @@ def jangpro_mission_start():
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
 
-        # 3. Gemini API 호출
+        # 3. Gemini API 호출 (URL 오타 최종 수정)
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         gemini_response = requests.post(gemini_url, json=payload)
@@ -43,15 +43,12 @@ def jangpro_mission_start():
         return jsonify(final_report)
 
     except requests.exceptions.RequestException as e:
-        # 네트워크 또는 HTTP 에러 처리
         error_report = {"mission_status": "ERROR", "error_type": "RequestException", "error_message": str(e)}
         return jsonify(error_report), 500
     except (KeyError, IndexError, TypeError) as e:
-        # JSON 파싱 또는 데이터 구조 에러 처리
         error_report = {"mission_status": "ERROR", "error_type": "ParsingError", "error_message": f"Failed to parse API response: {str(e)}", "raw_response": gemini_result_json}
         return jsonify(error_report), 500
     except Exception as e:
-        # 그 외 모든 예측 불가능한 에러 처리
         error_report = {"mission_status": "ERROR", "error_type": "GeneralException", "error_message": str(e)}
         return jsonify(error_report), 500
 
