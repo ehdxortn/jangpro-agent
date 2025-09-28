@@ -15,7 +15,7 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final): MISSION START ##")
+    print("## JANGPRO AGENT (v_final_2): MISSION START ##")
     try:
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
@@ -34,9 +34,9 @@ def jangpro_mission_start():
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (공식 라이브러리 사용)
+        # 3. Gemini API 호출 (정확한 모델 버전으로 수정)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
-        model = GenerativeModel("gemini-pro")
+        model = GenerativeModel("gemini-1.0-pro")
         response = model.generate_content(prompt)
         analysis_text = response.text
         
