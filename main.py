@@ -21,7 +21,7 @@ def jangpro_mission_start():
         print("[1/4] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
         upbit_response = requests.get(upbit_url, timeout=10)
-        upbit_response.raise_for_status()
+        upbit_response.raise_for_status() 
         upbit_data = upbit_response.json()
         print("[2/4] Upbit API call successful.")
 
@@ -37,17 +37,23 @@ def jangpro_mission_start():
         # 3. Gemini API 호출 (최신 안정 모델 2.5 Pro 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
         model = GenerativeModel("gemini-2.5-pro")
-        response = model.generate_content(prompt)
-        analysis_text = response.text
+        try:
+            response = model.generate_content(prompt)
+            analysis_text = response.text
+        except Exception as e:
+            print(f"Generate content error: {e}")
+            analysis_text = "모델 호출 중 오류가 발생했습니다."
 
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
 
+    except requests.exceptions.RequestException as re:
+        print(f"Upbit API request error: {re}")
+        return jsonify({"mission_status": "ERROR", "error_message": f"Upbit API 오류: {re}"}), 500
     except Exception as e:
-        print(f"!! EXCEPTION OCCURRED: {str(e)} !!")
-        error_report = {"mission_status": "ERROR", "error_message": str(e)}
-        return jsonify(error_report), 500
+        print(f"!! EXCEPTION OCCURRED: {e} !!")
+        return jsonify({"mission_status": "ERROR", "error_message": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
