@@ -21,7 +21,7 @@ def jangpro_mission_start():
         print("[1/4] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
         upbit_response = requests.get(upbit_url, timeout=10)
-        upbit_response.raise_for_status() 
+        upbit_response.raise_for_status()
         upbit_data = upbit_response.json()
         print("[2/4] Upbit API call successful.")
 
@@ -34,12 +34,12 @@ def jangpro_mission_start():
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (가장 안정적인 1.0 Pro 모델 사용)
+        # 3. Gemini API 호출 (최신 안정 모델 2.5 Pro 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
-        model = GenerativeModel("gemini-1.0-pro")
+        model = GenerativeModel("gemini-2.5-pro")
         response = model.generate_content(prompt)
         analysis_text = response.text
-        
+
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
