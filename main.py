@@ -4,7 +4,6 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 
 # --- Google Cloud 공식 라이브러리 초기화 ---
-# API 키 설정이 완전히 필요 없습니다. Cloud Run이 알아서 인증합니다.
 GCP_PROJECT_ID = "jangprofamily"
 GCP_REGION = "asia-northeast3"
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
@@ -16,7 +15,7 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final_auth): MISSION START ##")
+    print("## JANGPRO AGENT (v_final_stable): MISSION START ##")
     try:
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
@@ -35,12 +34,12 @@ def jangpro_mission_start():
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (API 키 없이 라이브러리가 자동으로 인증)
+        # 3. Gemini API 호출 (가장 안정적인 1.0 Pro 모델 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
-        model = GenerativeModel("gemini-1.5-pro-latest") # <-- 최신 안정화 모델 사용
+        model = GenerativeModel("gemini-1.0-pro")
         response = model.generate_content(prompt)
         analysis_text = response.text
-        
+
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
