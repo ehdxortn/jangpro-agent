@@ -3,8 +3,11 @@ import requests, json, os
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
-# --- Vertex AI 라이브러리는 환경 변수를 자동으로 감지하므로,
-# --- 명시적인 init() 호출이 더 이상 필요 없습니다. ---
+# --- Google Cloud 공식 라이브러리 초기화 ---
+GCP_PROJECT_ID = "jangprofamily"
+GCP_REGION = "us-central1"
+vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
+# -----------------------------------------
 
 app = Flask(__name__)
 
@@ -12,13 +15,8 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final_simplified): MISSION START ##")
+    print("## JANGPRO AGENT (v_final_stable): MISSION START ##")
     try:
-        # Vertex AI 초기화를 이 안에서 수행합니다.
-        PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
-        REGION = os.environ.get("GOOGLE_CLOUD_REGION")
-        vertexai.init(project=PROJECT_ID, location=REGION)
-        
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
@@ -36,7 +34,7 @@ def jangpro_mission_start():
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출
+        # 3. Gemini API 호출 (가장 안정적인 1.0 Pro 모델 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
         model = GenerativeModel("gemini-1.0-pro")
         response = model.generate_content(prompt)
