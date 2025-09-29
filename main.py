@@ -3,9 +3,9 @@ import requests, json, os
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
-# --- Google Cloud 공식 라이브러리 초기화 ---
+# --- Google Cloud 공식 라이브러리 초기화 (리전 수정) ---
 GCP_PROJECT_ID = "jangprofamily"
-GCP_REGION = "asia-northeast3"
+GCP_REGION = "us-central1" # <--- 리전을 us-central1로 변경
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
 # -----------------------------------------
 
@@ -15,7 +15,7 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final_stable_1.5): MISSION START ##")
+    print("## JANGPRO AGENT (v_final_correct_region): MISSION START ##")
     try:
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
@@ -27,16 +27,16 @@ def jangpro_mission_start():
 
         # 2. 프롬프트 생성
         prompt = (
-            "너는 '장프로'라는 이름의 AI 트레이딩 어시쓰턴트다. "
+            "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
             "다음은 업비트의 실시간 코인 데이터다:\n\n"
             f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (1.5 Pro 최신 모델 사용)
+        # 3. Gemini API 호출 (모델 이름 수정)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
-        model = GenerativeModel("gemini-1.5-pro-latest")
+        model = GenerativeModel("gemini-1.5-pro") # <--- 모델 이름을 1.5-pro로 변경
         response = model.generate_content(prompt)
         analysis_text = response.text
         
