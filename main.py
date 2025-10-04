@@ -5,7 +5,7 @@ from vertexai.generative_models import GenerativeModel
 
 # --- Google Cloud 공식 라이브러리 초기화 ---
 GCP_PROJECT_ID = "jangprofamily"
-GCP_REGION = "us-central1" # Google 공식 답변에 따른 지원 리전
+GCP_REGION = "us-central1"
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
 # -----------------------------------------
 
@@ -15,7 +15,7 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final_official): MISSION START ##")
+    print("## JANGPRO AGENT (v_google_official_2.5): MISSION START ##")
     try:
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
@@ -34,7 +34,7 @@ def jangpro_mission_start():
         )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (Google 공식 추천 모델 사용)
+        # 3. Gemini API 호출 (Google 공식 답변 모델 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
         model = GenerativeModel("gemini-2.5-pro")
         response = model.generate_content(prompt)
