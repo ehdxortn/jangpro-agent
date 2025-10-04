@@ -5,7 +5,7 @@ from vertexai.generative_models import GenerativeModel
 
 # --- Google Cloud 공식 라이브러리 초기화 ---
 GCP_PROJECT_ID = "jangprofamily"
-GCP_REGION = "us-central1"
+GCP_REGION = "us-central1" # Google 공식 답변에 따른 지원 리전
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_REGION)
 # -----------------------------------------
 
@@ -15,42 +15,38 @@ TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-S
 
 @app.route("/")
 def jangpro_mission_start():
-    print("## JANGPRO AGENT (v_final_stable): MISSION START ##")
+    print("## JANGPRO AGENT (v_final_official): MISSION START ##")
     try:
         # 1. Upbit 데이터 호출
         print("[1/4] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
         upbit_response = requests.get(upbit_url, timeout=10)
-        upbit_response.raise_for_status()
+        upbit_response.raise_for_status() 
         upbit_data = upbit_response.json()
         print("[2/4] Upbit API call successful.")
 
-        # 2. 프롬프트 생성 (간단화)
-        prompt = "안녕하세요. 간단한 테스트입니다."
+        # 2. 프롬프트 생성
+        prompt = (
+            "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
+            "다음은 업비트의 실시간 코인 데이터다:\n\n"
+            f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
+            "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
+        )
         print("[3/4] Prompt generation successful.")
 
-        # 3. Gemini API 호출 (기본 모델로 테스트)
+        # 3. Gemini API 호출 (Google 공식 추천 모델 사용)
         print("[4/4] Calling Gemini API via Vertex AI Library...")
-        try:
-            model = GenerativeModel("gemini-1.5-pro")
-            response = model.generate_content(prompt)
-            analysis_text = response.text
-            print(f"Gemini response received: {analysis_text[:100]}...")
-        except Exception as e:
-            print(f"Gemini API Error: {str(e)}")
-            analysis_text = f"Gemini 모델 호출 실패: {str(e)}"
-
+        model = GenerativeModel("gemini-2.5-pro")
+        response = model.generate_content(prompt)
+        analysis_text = response.text
+        
         final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
         print("## JANGPRO AGENT: MISSION COMPLETE ##")
         return jsonify(final_report)
 
-    except requests.exceptions.RequestException as re:
-        print(f"Upbit API request error: {re}")
-        error_report = {"mission_status": "ERROR", "error_message": f"Upbit API 오류: {re}"}
-        return jsonify(error_report), 500
     except Exception as e:
-        print(f"!! GENERAL EXCEPTION: {str(e)} !!")
-        error_report = {"mission_status": "ERROR", "error_message": f"일반 오류: {str(e)}"}
+        print(f"!! EXCEPTION OCCURRED: {str(e)} !!")
+        error_report = {"mission_status": "ERROR", "error_message": str(e)}
         return jsonify(error_report), 500
 
 if __name__ == "__main__":
