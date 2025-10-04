@@ -8,5 +8,5 @@ COPY . ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# CMD 라인을 수정하여 $PORT 변수가 올바르게 적용되도록 합니다.
-CMD exec gunicorn --bind "0.0.0.0:$PORT" main:app
+# CMD 라인에 --timeout 120 옵션을 추가하여 대기 시간을 120초로 늘립니다.
+CMD exec gunicorn --bind "0.0.0.0:$PORT" --timeout 120 main:app
