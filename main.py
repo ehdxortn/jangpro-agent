@@ -2,8 +2,8 @@ from flask import Flask, jsonify
 import requests, json, os
 import google.generativeai as genai
 
-# --- Google AI 공식 라이브러리 초기화 ---
-# 형님의 실제 API 키를 사용합니다.
+# --- Google AI 공식 라이브-러리 초기화 ---
+# 형님께서 알려주신 실제 API 키를 사용합니다.
 GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
 genai.configure(api_key=GEMINI_API_KEY)
 # -----------------------------------------
@@ -19,12 +19,12 @@ def jangpro_mission_start():
         # 1. Upbit 데이터 호출
         print("[1/3] Calling Upbit API...")
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
-        upbit_response = requests.get(upbit_url, timeout=30) # timeout을 30초로 늘림
+        upbit_response = requests.get(upbit_url, timeout=30)
         upbit_response.raise_for_status() 
         upbit_data = upbit_response.json()
         print("[2/3] Upbit API call successful.")
 
-        # 2. 프롬프트 생성 및 Gemini API 호출
+        # 2. 프롬프트 생성 및 Gemini API 호출 (Google 공식 답변 모델 사용)
         prompt = (
             "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
             "다음은 업비트의 실시간 코인 데이터다:\n\n"
@@ -32,7 +32,7 @@ def jangpro_mission_start():
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
         print("[3/3] Calling Gemini API with the correct library...")
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+        model = genai.GenerativeModel("gemini-2.5-pro") # <--- Google 공식 답변에 따른 최종 모델
         response = model.generate_content(prompt)
         
         final_report = {"mission_status": "SUCCESS", "analysis_report": response.text}
