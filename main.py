@@ -2,8 +2,8 @@ from flask import Flask, jsonify
 import requests, json, os
 import google.generativeai as genai
 
-# Gemini API 키 입력
-GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0"
+# Gemini API 키 입력 (새로운 키)
+GEMINI_API_KEY = "AIzaSyBQcRI97vzwfstcbLz8wNIqbmVQp9nKGU0"
 genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
