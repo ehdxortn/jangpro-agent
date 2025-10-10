@@ -1,62 +1,48 @@
 from flask import Flask, jsonify
-import requests
-import os
+import requests, json, os
+import google.generativeai as genai
 
-# --- 이 코드가 진짜 실행되는지 확인하고, 목적을 명시하기 위한 버전 ---
-CODE_VERSION = "upbit_connection_deep_dive_v3"
-# ----------------------------------------------------------------
-
-# 테스트를 위한 가장 간단한 Upbit API 주소
-UPBIT_URL = "https://api.upbit.com/v1/market/all"
+# --- Google AI 공식 라이브러리 초기화 ---
+# 형님께서 알려주신 실제 API 키를 사용합니다.
+GEMINI_API_KEY = "AIzaSyDvrIdBfc3x0O3syU58XGwgtLi7rCEC0M0" 
+genai.configure(api_key=GEMINI_API_KEY)
+# -----------------------------------------
 
 app = Flask(__name__)
 
+TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
+
 @app.route("/")
-def deep_dive_diagnostics():
-    print(f"## JANGPRO AGENT ({CODE_VERSION}): MISSION START ##")
-    print(f"Attempting to connect ONLY to Upbit at: {UPBIT_URL}")
-    
+def jangpro_mission_start():
+    print("## JANGPRO AGENT (v_final_return): MISSION START ##")
     try:
-        # 타임아웃이 원인이 아님을 확실히 하기 위해 60초로 매우 길게 설정
-        response = requests.get(UPBIT_URL, timeout=60)
-        
-        print(">>> Connection to Upbit was successful!")
-        print(f"Upbit response status code: {response.status_code}")
-        
-        # Upbit 서버가 4xx 또는 5xx 에러를 반환하는지 확인
-        response.raise_for_status() 
-        
-        report = {
-            "agent_version": CODE_VERSION,
-            "status": "SUCCESS",
-            "details": "Successfully connected to Upbit and received a valid response.",
-            "upbit_status_code": response.status_code
-        }
-        return jsonify(report)
+        # 1. Upbit 데이터 호출
+        print("[1/3] Calling Upbit API...")
+        upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
+        upbit_response = requests.get(upbit_url, timeout=30)
+        upbit_response.raise_for_status() 
+        upbit_data = upbit_response.json()
+        print("[2/3] Upbit API call successful.")
 
-    except requests.exceptions.Timeout as e:
-        error_message = f"Timeout Error: The request to Upbit timed out after 60 seconds. This means the server is not responding or is blocked. Error: {e}"
-        print(f"!! FATAL NETWORK ERROR: {error_message} !!")
-        report = {"agent_version": CODE_VERSION, "status": "FAILED", "error_type": "Timeout", "details": error_message}
-        return jsonify(report), 500
-
-    except requests.exceptions.ConnectionError as e:
-        error_message = f"Connection Error: A fundamental network problem occurred (e.g., DNS failure, refused connection). Upbit might be blocking us. Error: {e}"
-        print(f"!! FATAL NETWORK ERROR: {error_message} !!")
-        report = {"agent_version": CODE_VERSION, "status": "FAILED", "error_type": "ConnectionError", "details": error_message}
-        return jsonify(report), 500
+        # 2. 프롬프트 생성 및 Gemini API 호출 (Google 공식 답변 모델 사용)
+        prompt = (
+            "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
+            "다음은 업비트의 실시간 코인 데이터다:\n\n"
+            f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
+            "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
+        )
+        print("[3/3] Calling Gemini API with the correct library...")
+        model = genai.GenerativeModel("gemini-2.5-pro") # <--- Google 공식 답변에 따른 최종 모델
+        response = model.generate_content(prompt)
         
-    except requests.exceptions.HTTPError as e:
-        error_message = f"HTTP Error: Upbit's server responded with an error code (4xx or 5xx), but we were able to connect. Error: {e}"
-        print(f"!! FATAL NETWORK ERROR: {error_message} !!")
-        report = {"agent_version": CODE_VERSION, "status": "FAILED", "error_type": "HTTPError", "details": error_message}
-        return jsonify(report), 500
+        final_report = {"mission_status": "SUCCESS", "analysis_report": response.text}
+        print("## JANGPRO AGENT: MISSION COMPLETE ##")
+        return jsonify(final_report)
 
     except Exception as e:
-        error_message = f"An Unexpected Error Occurred during the network request: {type(e).__name__} - {e}"
-        print(f"!! FATAL UNKNOWN ERROR: {error_message} !!")
-        report = {"agent_version": CODE_VERSION, "status": "FAILED", "error_type": "Unexpected", "details": error_message}
-        return jsonify(report), 500
+        print(f"!! EXCEPTION OCCURRED: {str(e)} !!")
+        error_report = {"mission_status": "ERROR", "error_message": str(e)}
+        return jsonify(error_report), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
