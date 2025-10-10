@@ -5,6 +5,8 @@ ENV APP_HOME /app
 WORKDIR $APP_HOME
 
 COPY . ./
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD exec gunicorn --bind "0.0.0.0:$PORT" --workers 1 --threads 8 --timeout 300 main:app
+# Gunicorn의 대기 시간을 300초로 늘려 Worker Timeout 문제를 해결합니다.
+CMD exec gunicorn --bind "0.0.0.0:$PORT" --timeout 300 main:app
