@@ -1,48 +1,57 @@
 from flask import Flask, jsonify
 import requests
+import json
 import os
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
-# --- 이 코드가 진짜 실행되는지 확인하기 위한 버전 각인 ---
-CODE_VERSION = "network_diagnostic_v2_final_check"
+# --- Google Cloud Vertex AI 초기화 ---
+PROJECT_ID = "jangprofamily"
+LOCATION = "us-central1"
+vertexai.init(project=PROJECT_ID, location=LOCATION)
 # ----------------------------------------------------
 
 app = Flask(__name__)
 
-# 테스트할 URL 정의
-UPBIT_URL = "https://api.upbit.com/v1/market/all"
-GOOGLE_URL = "https://www.google.com"
-
-def diagnose_connection(name, url):
-    """지정된 URL에 대한 네트워크 연결을 진단하고 결과를 반환하는 함수"""
-    print(f"--- ({CODE_VERSION}) Diagnosing connection to {name} ({url}) ---")
-    try:
-        response = requests.get(url, timeout=15)
-        print(f"[{name}] Response received. Status code: {response.status_code}")
-        response.raise_for_status()
-        return "SUCCESS", f"Successfully connected. Status code: {response.status_code}"
-    except requests.exceptions.RequestException as e:
-        error_message = f"{type(e).__name__}: {str(e)}"
-        print(f"!! [{name}] FAILED: {error_message} !!")
-        return "FAILED", error_message
+TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
 @app.route("/")
-def network_diagnostics_start():
-    print(f"## JANGPRO AGENT ({CODE_VERSION}): MISSION START ##")
-    
-    google_status, google_message = diagnose_connection("Google.com", GOOGLE_URL)
-    upbit_status, upbit_message = diagnose_connection("Upbit API", UPBIT_URL)
-    
-    report = {
-        "agent_version": CODE_VERSION, # <--- JSON 응답에 버전 정보 '각인'
-        "mission_status": "DIAGNOSTICS_COMPLETE",
-        "results": [
-            {"target": "Google.com (Control Test)", "status": google_status, "details": google_message},
-            {"target": "Upbit API (Primary Test)", "status": upbit_status, "details": upbit_message}
-        ]
-    }
-    
-    print(f"## JANGPRO AGENT ({CODE_VERSION}): MISSION COMPLETE ##")
-    return jsonify(report)
+def jangpro_mission_start():
+    print("## JANGPRO AGENT (v_production_2.5): MISSION START ##")
+    try:
+        # 1. Upbit 데이터 호출
+        print("[1/3] Calling Upbit API...")
+        upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
+        upbit_response = requests.get(upbit_url, timeout=30)
+        upbit_response.raise_for_status()
+        upbit_data = upbit_response.json()
+        print("[2/3] Upbit API call successful.")
+
+        # 2. 프롬프트 생성 및 Gemini API 호출
+        prompt = (
+            "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
+            "다음은 업비트의 실시간 코인 데이터다:\n\n"
+            f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
+            "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, 그 핵심 근거를 한 줄로 요약하여 보고하라."
+        )
+        
+        print("[3/3] Calling Gemini API via Vertex AI with the correct model...")
+        # Google의 공식 답변에 따른, 현재 지원되는 최신 안정 모델 사용
+        model = GenerativeModel("gemini-2.5-pro")
+        response = model.generate_content(prompt)
+        
+        analysis_text = ""
+        if response.candidates:
+            analysis_text = response.candidates[0].content.parts[0].text
+
+        final_report = {"mission_status": "SUCCESS", "analysis_report": analysis_text}
+        print("## JANGPRO AGENT: MISSION COMPLETE ##")
+        return jsonify(final_report)
+
+    except Exception as e:
+        print(f"!! EXCEPTION OCCURRED: {type(e).__name__} - {str(e)} !!")
+        error_report = {"mission_status": "ERROR", "error_details": f"{type(e).__name__}: {str(e)}"}
+        return jsonify(error_report), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
