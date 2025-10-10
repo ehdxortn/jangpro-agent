@@ -27,7 +27,7 @@ def jangpro_mission_start():
             "이 데이터를 기반으로, 각 코인에 대해 '프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)를 분석하고, "
             "그 핵심 근거를 한 줄로 요약하여 보고하라."
         )
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-2.5-pro")
         response = model.generate_content(prompt)
 
         # 성공 결과 반환
