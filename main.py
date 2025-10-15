@@ -5,16 +5,16 @@ import openai
 import re
 import concurrent.futures
 
-# Gemini API Key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Gems API Key
+GEMINI_API_KEY = "AIzaSyBQcRI97vzwfstcbLz8wNIqbmVQp9nKGU0"
 genai.configure(api_key=GEMINI_API_KEY)
 
 # OpenAI API Key
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = "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"
 openai.api_key = OPENAI_API_KEY
 
 # Perplexity API Key
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+PERPLEXITY_API_KEY = "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"
 PERPLEXITY_URL = "https://api.perplexity.ai/chat/completions"
 
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
