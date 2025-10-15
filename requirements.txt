@@ -1,5 +1,6 @@
-Flask
+flask
 gunicorn
 requests
 google-generativeai
-openai
+openai>=1.0.0
+python-dotenv
