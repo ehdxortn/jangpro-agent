@@ -4,13 +4,13 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# === Gemini API 설정 ===
+# === Gemini & Upbit 설정 ===
 GEMINI_API_KEY = "AIzaSyAUhg2nFtQxWfmYCfV5kEhbP1vHYiMBiT"
 TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
 
-# === 헬스체크 ===
+# === 헬스체크 엔드포인트 ===
 @app.route("/healthz", methods=["GET"])
-def health_check():
+def healthz():
     return jsonify({
         "service": "jangpro-agent",
         "status": "OK",
@@ -19,24 +19,28 @@ def health_check():
 
 # === 기본 페이지 ===
 @app.route("/", methods=["GET"])
-def root_page():
+def home():
     return jsonify({
-        "service": "jangpro-agent",
-        "message": "Service is running",
-        "usage": "POST /analyze with JSON {'query': '<질문 내용>'}"
+        "message": "JangPro Agent is running.",
+        "usage": {
+            "health_check": "/healthz",
+            "analysis": "POST /analyze {'query': '<질문>'}"
+        }
     })
 
-# === 분석 엔드포인트 ===
+# === 업비트 + Gemini 분석 ===
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
         data = request.get_json()
         query = data.get("query", "비트코인 단기 전망")
 
+        # 업비트 실시간 데이터 가져오기
         upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
-        upbit_response = requests.get(upbit_url, timeout=20)
+        upbit_response = requests.get(upbit_url)
         upbit_data = upbit_response.json()
 
+        # Gemini 요청 준비
         prompt = (
             f"너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다.\n"
             f"다음은 업비트의 실시간 코인 데이터다:\n\n"
@@ -47,7 +51,7 @@ def analyze():
 
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        gemini_response = requests.post(gemini_url, json=payload, timeout=60)
+        gemini_response = requests.post(gemini_url, json=payload)
         gemini_json = gemini_response.json()
 
         analysis_text = gemini_json['candidates'][0]['content']['parts'][0]['text']
@@ -63,6 +67,7 @@ def analyze():
             "mission_status": "ERROR",
             "error_message": str(e)
         }), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
