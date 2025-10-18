@@ -1,103 +1,55 @@
-from flask import Flask, jsonify
-import requests, json, os, re, concurrent.futures
+from flask import Flask, jsonify, request
+import os, requests, json
+import openai
 import google.generativeai as genai
 
-# --- 🔐 API Keys (환경 변수 기반으로 불러옴) ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY")
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", "YOUR_PERPLEXITY_API_KEY")
-PERPLEXITY_URL = "https://api.perplexity.ai/chat/completions"
+# --- API 키 설정 ---
+openai.api_key = os.getenv("OPENAI_API_KEY")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+PERPLEXITY_KEY = os.getenv("PERPLEXITY_API_KEY")
 
-# --- ⚙️ Gemini 초기화 ---
-genai.configure(api_key=GEMINI_API_KEY)
-
-# --- 📈 분석 대상 코인 목록 ---
-TARGET_COINS = ["KRW-BTC", "KRW-ETH", "KRW-NEAR", "KRW-POL", "KRW-WAVES", "KRW-SOL"]
-
-# --- 📊 AI 응답 파싱 함수 ---
-def parse_gemini_response(result_text):
-    coin_signals = []
-    lines = result_text.strip().split('\n')
-    for line in lines:
-        found = re.match(r"(.+?):\s*(매수|매도|관망)\s*-\s*(.+)", line)
-        if found:
-            name = found.group(1).strip()
-            signal = found.group(2).strip()
-            reason = found.group(3).strip()
-            coin_signals.append({
-                "코인명": name,
-                "신호": signal,
-                "근거": reason
-            })
-    return coin_signals if coin_signals else result_text
-
-# --- 🧠 Gemini 호출 함수 ---
-def gemini_call(prompt):
-    model = genai.GenerativeModel("gemini-2.5-pro")
-    response = model.generate_content(prompt)
-    return parse_gemini_response(response.text)
-
-# --- 🌐 Perplexity 호출 함수 (수정된 최신 버전) ---
-def perplexity_call(prompt):
-    headers = {
-        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "sonar-deep-research",   # ✅ 최신 모델명 (perplexity/ 제거됨)
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
-        "max_tokens": 1000
-    }
-
-    resp = requests.post(PERPLEXITY_URL, headers=headers, json=payload, timeout=30)
-    if resp.status_code != 200:
-        raise Exception(f"Perplexity API Error: {resp.status_code}, {resp.text}")
-
-    data = resp.json()
-    ai_text = data['choices'][0]['message']['content']
-    return parse_gemini_response(ai_text)
-
-# --- ⚙️ Flask 앱 설정 ---
 app = Flask(__name__)
 
-@app.route("/")
-def jangpro_mission_start():
-    try:
-        # 1️⃣ 업비트 실시간 코인 데이터 호출
-        upbit_url = f"https://api.upbit.com/v1/ticker?markets={','.join(TARGET_COINS)}"
-        upbit_response = requests.get(upbit_url, timeout=30)
-        upbit_response.raise_for_status()
-        upbit_data = upbit_response.json()
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    user_query = request.json.get("query", "현재 시장 분석")
 
-        # 2️⃣ AI 분석용 프롬프트 생성
-        prompt = (
-            "너는 '장프로'라는 이름의 AI 트레이딩 어시스턴트다. "
-            "다음은 업비트의 실시간 코인 데이터다:\n\n"
-            f"{json.dumps(upbit_data, indent=2, ensure_ascii=False)}\n\n"
-            "이 데이터를 기반으로 각 코인에 대해 "
-            "'프로핏 스태킹' 모델에 따른 단기 매매 신호(매수/매도/관망)와 "
-            "핵심 근거를 '코인명: 신호 - 근거' 형식으로 한 줄씩 정리하라."
-        )
+    # 1️⃣ Perplexity: 최신 뉴스 / 데이터 수집
+    headers = {"Authorization": f"Bearer {PERPLEXITY_KEY}"}
+    ppx_resp = requests.post(
+        "https://api.perplexity.ai/chat/completions",
+        headers=headers,
+        json={
+            "model": "sonar-small-online",
+            "messages": [{"role": "user", "content": user_query}]
+        },
+        timeout=60
+    )
+    ppx_text = ppx_resp.json().get("choices",[{}])[0].get("message",{}).get("content","")
 
-        # 3️⃣ Gemini + Perplexity 병렬 실행
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = list(executor.map(lambda f: f(prompt), [gemini_call, perplexity_call]))
+    # 2️⃣ Gemini: 현실 검증 및 요약
+    gem_model = genai.GenerativeModel("gemini-2.5-pro")
+    gem_resp = gem_model.generate_content(
+        f"다음 정보를 현실적으로 요약하고 핵심 리스크를 분석해줘:\n{ppx_text}"
+    ).text
 
-        # 4️⃣ 결과 반환
-        return jsonify({
-            "mission_status": "SUCCESS",
-            "gemini_signals": results[0],
-            "perplexity_signals": results[1]
-        })
+    # 3️⃣ OpenAI: 논리 판단 및 결론 생성
+    oa_resp = openai.ChatCompletion.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "너는 분석가다."},
+            {"role": "user", "content": f"다음 내용을 논리적으로 판단하고 투자 방향을 제시해줘:\n{gem_resp}"}
+        ]
+    )
+    final_text = oa_resp["choices"][0]["message"]["content"]
 
-    except Exception as e:
-        return jsonify({
-            "mission_status": "ERROR",
-            "error_message": str(e)
-        }), 500
+    return jsonify({
+        "status": "SUCCESS",
+        "query": user_query,
+        "perplexity_summary": ppx_text,
+        "gemini_analysis": gem_resp,
+        "openai_decision": final_text
+    })
 
-
-# --- 🚀 Cloud Run 진입점 ---
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
