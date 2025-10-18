@@ -1,4 +1,5 @@
 Flask
+gunicorn
 requests
-openai
+openai>=1.40.0
 google-generativeai
