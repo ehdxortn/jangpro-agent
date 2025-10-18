@@ -1,5 +1,4 @@
-flask
-gunicorn
+Flask
 requests
+openai
 google-generativeai
-python-dotenv
